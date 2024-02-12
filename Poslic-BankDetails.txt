@@ -1,0 +1,349 @@
+import Index from "../../components/BankDetails/Index";
+
+const BankDetails = () => {
+    return (
+        <div className="flex-1">
+            <Index />
+        </div>
+    );
+};
+
+export default BankDetails;
+
+
+import Title from "../title/Title";
+import "./BankDetails.css";
+import bank from "../../assets/images/bank.png";
+import icon from "../../assets/images/Delete.png";
+import AddBankDetailsModal from "../Modal/AddBankDetailsModal/AddBankDetailsModal";
+import { toast } from "react-toastify";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+const apiUrl = process.env.REACT_APP_API_BASE_URL;
+
+const Index = () => {
+    const { t } = useTranslation();
+    const [bankDetails, setBankDetails] = useState({});
+
+    const fetchBankDetails = () => {
+        axios
+            .get(`${apiUrl}/tasker/bank-detail`, {
+                headers: {
+                    Authorization: `Bearer ${sessionStorage.getItem(
+                        "accessToken"
+                    )}`,
+                },
+            })
+            .then((response) => {
+                setBankDetails(response.data.data);
+            })
+            .catch((error) => {
+                toast.error("Fetching error", error);
+            });
+    };
+
+    useEffect(() => {
+        fetchBankDetails();
+    }, []);
+
+    const handleDelete = () => {
+        axios
+            .delete(`${apiUrl}/tasker/delete-detail`, {
+                headers: {
+                    accept: "application/json",
+                    Authorization: `Bearer ${sessionStorage.getItem(
+                        "accessToken"
+                    )}`,
+                },
+            })
+            .then(() => {
+                fetchBankDetails();
+                toast.success(t("Bank detail deleted successfully"));
+            })
+            .catch((error) => {
+                toast.error(t("Error deleting bank detail"), error);
+            });
+    };
+
+    return (
+        <div className="bank-details-wrapper">
+            <div className="container">
+                <div className="col-sm-10 offset-sm-1">
+                    <Title
+                        title={t("Bank Details")}
+                        location="/home-provider"
+                    />
+                    <div className="d-flex justify-content-center align-items-center flex-column my-5">
+                        {Object.keys(bankDetails).length > 0 ? (
+                            <div className="box d-flex justify-content-between align-items-center p-2 p-sm-5 mb-3">
+                                <div className="d-flex align-items-center gap-3">
+                                    <img
+                                        src={bank}
+                                        alt="bank"
+                                        className="icon"
+                                    />
+                                    <div>
+                                        <h3 className="mb-0">
+                                            {bankDetails.name}
+                                        </h3>
+                                        <p className="mb-0">
+                                            {t("Route No")}.{" "}
+                                            {bankDetails.routeNum}
+                                        </p>
+                                        <p className="mb-0">
+                                            {bankDetails.accountNum}
+                                        </p>
+                                    </div>
+                                </div>
+                                <img
+                                    src={icon}
+                                    alt="trash"
+                                    className="icon"
+                                    onClick={() =>
+                                        handleDelete(bankDetails._id)
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <AddBankDetailsModal
+                                fetchBankDetails={fetchBankDetails}
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Index;
+
+
+
+
+import axios from "axios";
+import { useState } from "react";
+import Modal from "react-bootstrap/Modal";
+import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
+
+const apiUrl = process.env.REACT_APP_API_BASE_URL;
+
+const AddBankDetailsModal = ({ fetchBankDetails }) => {
+    const { t } = useTranslation();
+    const [show, setShow] = useState(false);
+    const [formData, setFormData] = useState({
+        name: "",
+        routeNum: "",
+        accountNum: "",
+        countryCode: "",
+        mobileNum: "",
+        address: "",
+        city: "",
+        state: "",
+        ssnNum: "",
+        zipcode: "",
+    });
+
+    const handleClose = () => setShow(false);
+    const handleShow = () => setShow(true);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        let response;
+        try {
+            response = await axios.post(
+                `${apiUrl}/tasker/bank-detail`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${sessionStorage.getItem(
+                            "accessToken"
+                        )}`,
+                    },
+                }
+            );
+
+            if (response.status === 200) {
+                fetchBankDetails();
+                setShow(false);
+                toast.success(t("Bank details added successfully"));
+            }
+        } catch (error) {
+            // console.error("Add bank details error:", error);
+            if (
+                error.response &&
+                error.response.data &&
+                error.response.data.message
+            ) {
+                toast.error("Failed: " + error.response.data.message);
+            } else {
+                toast.error("Failed: " + error.message);
+            }
+        }
+    };
+
+    return (
+        <>
+            <button
+                type="button"
+                className="coman-btn border-0 mb-3 fw-medium"
+                onClick={handleShow}
+            >
+                {t("+ Add Bank Details")}
+            </button>
+            <Modal
+                size="lg"
+                show={show}
+                onHide={handleClose}
+                backdrop="static"
+                keyboard={false}
+                className="addamountmodal p-0"
+                centered
+            >
+                <Modal.Header
+                    closeButton
+                    className="border-0 justify-content-center text-center"
+                >
+                    <h1 className="mb-0">{t("+ Add Bank Details")}</h1>
+                </Modal.Header>
+                <Modal.Body>
+                    <form action="" onSubmit={handleSubmit}>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Account Holder Name")}
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.name}
+                                name="name"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Route Number")}
+                            </label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.routeNum}
+                                name="routeNum"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Bank Account Number")}
+                            </label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.accountNum}
+                                name="accountNum"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Mobile Number")}
+                            </label>
+                            <div className="position-relative">
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    onChange={handleChange}
+                                    value={formData.mobileNum}
+                                    name="mobileNum"
+                                    style={{ paddingLeft: "70px" }}
+                                />
+                                <select
+                                    name="countryCode"
+                                    onChange={handleChange}
+                                    value={formData.countryCode}
+                                    className="position-absolute border-0"
+                                    style={{ top: "13px", left: "15px" }}
+                                >
+                                    <option value="381">381</option>
+                                    <option value="91">91</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Address")}
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.address}
+                                name="address"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("City")}
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.city}
+                                name="city"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("State")}
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.state}
+                                name="state"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("SSN Number")}
+                            </label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.ssnNum}
+                                name="ssnNum"
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label htmlFor="hours" className="form-label">
+                                {t("Zip Code")}
+                            </label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                onChange={handleChange}
+                                value={formData.zipcode}
+                                name="zipcode"
+                            />
+                        </div>
+                        <button type="submit" className="coman-btn-fill">
+                            {t("Add")}
+                        </button>
+                    </form>
+                </Modal.Body>
+            </Modal>
+        </>
+    );
+};
+
+export default AddBankDetailsModal;
